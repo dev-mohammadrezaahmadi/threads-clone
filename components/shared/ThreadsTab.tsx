@@ -1,80 +1,52 @@
-import { redirect } from "next/navigation";
+"use client";
 
-import { fetchUserPosts } from "@/lib/actions/user.actions";
+import Image from "next/image";
+import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 
-import ThreadCard from "../cards/ThreadCard";
-
-interface Result {
-  name: string;
-  image: string;
-  id: string;
-  threads: {
-    _id: string;
-    text: string;
-    parentId: string | null;
-    author: {
-      name: string;
-      image: string;
-      id: string;
-    };
-    community: {
-      id: string;
-      name: string;
-      image: string;
-    } | null;
-    createdAt: string;
-    children: {
-      author: {
-        image: string;
-      };
-    }[];
-  }[];
-}
+import { Input } from "../ui/input";
 
 interface Props {
-  currentUserId: string;
-  accountId: string;
-  accountType: string;
+  routeType: string;
 }
 
-async function ThreadsTab({ currentUserId, accountId, accountType }: Props) {
-  let result: Result;
+function Searchbar({ routeType }: Props) {
+  const router = useRouter();
+  const [search, setSearch] = useState("");
 
-  result = await fetchUserPosts(accountId);
+  // query after 0.3s of no input
+  useEffect(() => {
+    const delayDebounceFn = setTimeout(() => {
+      if (search) {
+        router.push(`/${routeType}?q=` + search);
+      } else {
+        router.push(`/${routeType}`);
+      }
+    }, 300);
 
-  if (!result) {
-    redirect("/");
-  }
+    return () => clearTimeout(delayDebounceFn);
+  }, [search, routeType]);
 
   return (
-    <section className='mt-9 flex flex-col gap-10'>
-      {result.threads.map((thread) => (
-        <ThreadCard
-          key={thread._id}
-          id={thread._id}
-          currentUserId={currentUserId}
-          parentId={thread.parentId}
-          content={thread.text}
-          author={
-            accountType === "User"
-              ? { name: result.name, image: result.image, id: result.id }
-              : {
-                  name: thread.author.name,
-                  image: thread.author.image,
-                  id: thread.author.id,
-                }
-          }
-          community={
-            accountType === "Community"
-              ? { name: result.name, id: result.id, image: result.image }
-              : thread.community
-          }
-          createdAt={thread.createdAt}
-          comments={thread.children}
-        />
-      ))}
-    </section>
+    <div className="searchbar">
+      <Image
+        src="/assets/search-gray.svg"
+        alt="search"
+        width={24}
+        height={24}
+        className="object-contain"
+      />
+      <Input
+        id="text"
+        value={search}
+        onChange={(e) => setSearch(e.target.value)}
+        placeholder={`${
+          routeType !== "/search" ? "Search communities" : "Search creators"
+        }`}
+        className="no-focus searchbar_input"
+      />
+    </div>
   );
 }
 
-export default ThreadsTab;
+export default Searchbar;
